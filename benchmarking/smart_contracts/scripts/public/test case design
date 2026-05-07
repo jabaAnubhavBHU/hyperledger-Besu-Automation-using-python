@@ -1,0 +1,6 @@
+- --------register 10 users with varioius roles and record their public keys, roles .. say in excel file/json file
+upload data for 3 users
+request permission from A to B and C
+B will allow ,after  checking  notification
+C will decline , after checking  notificatio
+A will retrive data of B ,after  checking notification

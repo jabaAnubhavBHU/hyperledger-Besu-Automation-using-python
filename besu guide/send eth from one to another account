@@ -1,0 +1,8 @@
+1. curl -X POST --data '{
+  "jsonrpc":"2.0",
+  "method":"eth_getBalance",
+  "params":["0x627306090abab3a6e1400e9345bc60c78a8bef57","latest"],
+  "id":1
+}' http://localhost:8545 -H "Content-Type: application/json"
+
+run this to get the balance of this specific account ox...

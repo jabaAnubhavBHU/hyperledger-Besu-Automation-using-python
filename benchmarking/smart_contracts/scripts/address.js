@@ -1,0 +1,7 @@
+module.exports = {
+    registry: "0x6410E8e6321f46B7A34B9Ea9649a4c84563d8045",
+    notification: "0x9b3241A4050670aC6598381501953911555dC53E",
+    permission: "0xfb895EF64e03aA76329836725dA2e02C83eBc1FA",
+    metadata: "0x33a50F9Fcbb32366b4C2aD1923eB92A454E5B061",
+    simpleStorage: "0xBca0fDc68d9b21b5bfB16D784389807017B2bbbc"
+};

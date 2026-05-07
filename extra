@@ -1,0 +1,67 @@
+curl -X POST http://localhost:8545 \
+-H "Content-Type: application/json" \
+--data '{
+  "jsonrpc":"2.0",
+  "method":"eth_getTransactionCount",
+  "params":["0x627306090abaB3A6e1400e9345bC60c78a8BEf57","pending"],
+  "id":1
+}'
+
+
+
+
+curl -X POST http://localhost:8545 \
+-H "Content-Type: application/json" \
+--data '{
+  "jsonrpc":"2.0",
+  "method":"qbft_getValidatorsByBlockNumber",
+  "params":["latest"],
+  "id":1
+}'  
+
+
+def normalize_line_endings():
+    """
+    Converts Windows CRLF line endings to Unix LF.
+    Useful when project files were edited on Windows.
+    """
+
+    print(">> Normalizing line endings...")
+
+    cmd = (
+        r'find . -type f \( '
+        r'-name "*.sh" -o '
+        r'-name ".env" -o '
+        r'-name "*.conf" '
+        r'\) -exec dos2unix {} +'
+    )
+
+    try:
+        result = subprocess.run(
+            cmd,
+            shell=True
+        )
+
+        if result.returncode != 0:
+            raise Exception("dos2unix command failed")
+
+        print(">> Line endings normalized")
+
+    except Exception as e:
+        raise Exception(
+            f"Failed normalizing line endings: {e}"
+        )
+    
+
+
+
+    try:
+
+    # --------------------------------------------------
+    # STEP 0: NORMALIZE LINE ENDINGS
+    # --------------------------------------------------
+
+    normalize_line_endings()
+
+    # --------------------------------------------------
+    # STEP 1: RESET NETWORK

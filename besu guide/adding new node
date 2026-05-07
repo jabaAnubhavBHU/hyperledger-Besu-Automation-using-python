@@ -1,0 +1,284 @@
+# Adding a New Validator Node to quorum‑test‑network
+
+This document explains how to add a **5th validator node** (called `validator5`) to the existing `quorum‑test‑network` IBFT 2.0 network, using the existing `genesis.json`, Docker networking, and IBFT voting commands.
+
+---
+
+## 1. Prerequisites
+
+Ensure:
+
+1. `quorum-test-network` is running:
+
+   ```bash
+   cd ~/quorum-test-network
+   ./run.sh
+   ```
+
+   This starts 4 validators and 1 non‑validator, exposing RPCs like `http://localhost:21001`, `21002`, etc.
+
+2. You have `geth` and `docker‑compose` available.
+
+3. You know the **RPC ports** used by your validators (e.g., `21001`–`21005`).
+
+---
+
+## 2. Create a directory for the new validator node
+
+Create a folder `validator5` inside `quorum-test-network`:
+
+```bash
+cd ~/quorum-test-network
+mkdir -p validator5/data
+```
+
+- `validator5/data` will hold:
+  - `keystore` (validator key),  
+  - Geth data.
+
+---
+
+## 3. Generate a validator key for validator5
+
+Create a new key that will be validator5’s identity:
+
+```bash
+cd ~/quorum-test-network
+geth account new --datadir validator5/data
+```
+
+You will be prompted for a password.  
+Note the **address** printed, e.g.:
+
+```text
+0x1234...ab
+```
+
+This is the **validator5 address** we will propose in the IBFT voting process.
+
+---
+
+## 4. Copy the existing `genesis.json`
+
+`quorum-test-network` has a shared `genesis.json` in:
+
+```bash
+networks/7nodes/ibft/genesis.json
+```
+
+Copy it into `validator5`:
+
+```bash
+cp networks/7nodes/ibft/genesis.json validator5/genesis.json
+```
+
+So `validator5` uses the **same genesis** as the live IBFT 2.0 network.
+
+---
+
+## 5. Prepare the validator key in `keystore`
+
+`geth account new` created something like:
+
+```text
+validator5/data/keystore/UTC-...
+```
+
+If you want to manage the key manually, move it into place:
+
+```bash
+mkdir -p validator5/data/keystore
+cp validator5/data/keystore/UTC-* validator5/data/keystore/
+```
+
+(If `geth` already put it there, nothing to do.)
+
+---
+
+## 6. Create `docker-compose-validator5.yml`
+
+Create:
+
+```bash
+~/quorum-test-network/docker-compose-validator5.yml
+```
+
+with content:
+
+```yaml
+version: '3.7'
+
+services:
+
+  validator5:
+    image: quorum-dev-quickstart:latest
+    container_name: validator5
+    volumes:
+      - ./validator5/data:/opt/qdata
+      - ./networks/7nodes/ibft/initialNodes.json:/opt/qdata/initialNodes.json
+      - ./networks/7nodes/ibft/permissioned-nodes.json:/opt/qdata/permissioned-nodes.json
+    ports:
+      - "21006:21005"      # host:container (21006 on host → 21005 inside)
+      - "30306:30305"      # P2P
+    networks:
+      - quorum-dev-quickstart
+    command: >
+      geth
+      --datadir=/opt/qdata
+      --networkid=1337
+      --rpc
+      --rpcaddr=0.0.0.0
+      --rpcport=21005
+      --rpcapi=web3,eth,net,ibft,debug,admin,clique
+      --verbosity=3
+      --syncmode=full
+      --nodiscover
+      --mine
+      --emitcheckpoints
+      --etherbase=0x1234...ab   # ← validator5 address
+      --allow-insecure-unlock
+      --unlock=0x1234...ab      # ← same
+      --password=/opt/qdata/initialNodes.json
+      --istanbul.requesttimeout=10000
+
+networks:
+  quorum-dev-quickstart:
+    external: true
+```
+
+Replace:
+
+- `0x1234...ab` with the **actual validator5 address** from Step 3.  
+- Adjust `21006` and `30306` if you already use those host ports.
+
+This:
+
+- Runs `geth` as a **Quorum client** in Docker,  
+- Uses the same `genesis.json` and permissioning files,  
+- Exposes:
+  - RPC on `http://localhost:21006`,  
+  - P2P on `30306`.
+
+---
+
+## 7. Start validator5
+
+Back in `quorum-test-network`:
+
+```bash
+cd ~/quorum-test-network
+export COMPOSE_PROJECT_NAME=quorum-dev-quickstart
+docker-compose -f docker-compose-validator5.yml up
+```
+
+Leave this terminal running.
+
+You should see `validator5` starting and connecting to the existing validators.
+
+---
+
+## 8. Attach `geth` to an existing validator
+
+Open a **new terminal** and attach to one of the running validators (for example, `validator1`):
+
+```bash
+cd ~/quorum-test-network
+geth attach http://localhost:21001
+```
+
+This gives you the `geth` JS console connected to `validator1`.
+
+---
+
+## 9. Check current validators
+
+In the `geth` console:
+
+```js
+istanbul.getValidators();
+```
+
+You should see 4 addresses:
+
+```js
+["0xaaa1...", "0xbbb2...", "0xccc3...", "0xddd4..."]
+```
+
+These are the **current IBFT 2.0 validators**.
+
+---
+
+## 10. Propose validator5 as a new validator
+
+Propose the validator5 address from the `geth` console:
+
+```js
+istanbul.propose("0x1234...ab", true);
+```
+
+- `"0x1234...ab"` = validator5 address.  
+- `true` = add as validator.
+
+To reach **majority vote**, repeat this from **at least 3** of the 4 existing validators:
+
+```js
+# On validator1, validator2, validator3:
+istanbul.propose("0x1234...ab", true);
+```
+
+After enough votes, IBFT will add `validator5` to the validator set.
+
+---
+
+## 11. Verify that validator5 is now a validator
+
+Still in a `geth` console:
+
+```js
+istanbul.getValidators();
+```
+
+You should now see **5** addresses:
+
+```js
+["0xaaa1...", "0xbbb2...", "0xccc3...", "0xddd4...", "0x1234...ab"]
+```
+
+The new validator is accepted.
+
+You can also run:
+
+```js
+net.peerCount
+```
+
+to confirm that `validator5` is connected to the network.
+
+---
+
+## 12. Optional: remove validator5 later
+
+To remove `validator5` from the validator set, run from a majority of validators:
+
+```js
+istanbul.propose("0x1234...ab", false);
+```
+
+After enough votes, `validator5` will be removed from the validator set.
+
+---
+
+## 13. How this fits your research
+
+This validator‑addition flow gives you:
+
+- A **5th IBFT 2.0 validator** in your `quorum-test-network`,  
+- Full control over **adding and removing** validators via `istanbul.propose`,  
+- A foundation for:
+  - Studying **validator rotation and block production**,  
+  - Building **auction‑style validator‑aware smart contracts** (if you want on‑chain governance of validators).
+
+You can now keep this document as:
+
+- `docs/validator_addition.md`  
+and reuse it whenever you want to extend your test‑network with new nodes.

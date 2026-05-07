@@ -1,0 +1,43 @@
+test:
+  workers:
+    number: 10
+
+  rounds:
+    - label: simple-set R1
+      description: Benchmark SimpleStorage set()
+
+      txNumber: 500
+
+      rateControl:
+        type: fixed-rate
+        opts:
+          tps: 20
+
+      workload:
+        module: workloads/set.js
+
+    # - label: simple-set R2
+    #   description: Benchmark SimpleStorage set()
+
+    #   txNumber: 500
+
+    #   rateControl:
+    #     type: fixed-rate
+    #     opts:
+    #       tps: 50
+
+    #   workload:
+    #     module: workloads/set.js
+
+    # - label: simple-set R3
+    #   description: Benchmark SimpleStorage set()
+
+    #   txNumber: 500
+
+    #   rateControl:
+    #     type: fixed-rate
+    #     opts:
+    #       tps: 100
+
+    #   workload:
+    #     module: workloads/set.js
